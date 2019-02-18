@@ -33,8 +33,9 @@ nif_compress(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
   while (enif_get_list_cell(env, opts_term, &head_term, &tail_term)) {
     if(enif_is_tuple(env,head_term)){
       enif_get_tuple(env,head_term,&tuple_size,&tuple_array);
-      if(enif_is_identical((*tuple_array), atom_high)){
-        enif_get_int(env,((*tuple_array) + 1), &high_level);
+      if(tuple_size == 2 && enif_is_identical((*tuple_array), atom_high)){
+        enif_get_int(env,(*(tuple_array + 1)), &high_level);
+       //high_level = 12;
         high = true;
       }
     }
