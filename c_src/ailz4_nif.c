@@ -22,6 +22,8 @@ nif_compress(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
   bool high = false;
   int real_size;
   size_t res_size;
+  int tuple_size,high_level;
+  const ERL_NIF_TERM *tuple_array;
 
   if (!enif_inspect_binary(env, argv[0], &src_bin) ||
       !enif_is_list(env, argv[1]))
@@ -29,8 +31,13 @@ nif_compress(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
   opts_term = argv[1];
   while (enif_get_list_cell(env, opts_term, &head_term, &tail_term)) {
-    if (enif_is_identical(head_term, atom_high))
-      high = true;
+    if(enif_is_tuple(env,head_term)){
+      enif_get_tuple(env,head_term,&tuple_size,&tuple_array);
+      if(enif_is_identical((*tuple_array), atom_high)){
+        enif_get_int(env,((*tuple_array) + 1), &high_level);
+        high = true;
+      }
+    }
     opts_term = tail_term;
   }
 
@@ -39,7 +46,7 @@ nif_compress(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
   if (high){
      real_size = LZ4_compress_HC((char *)src_bin.data,
-        (char *)res_bin.data, src_bin.size,res_size,LZ4HC_CLEVEL_MAX);
+        (char *)res_bin.data, src_bin.size,res_size,high_level);
   }else{
     real_size = LZ4_compress_default((char *)src_bin.data,
         (char *)res_bin.data, src_bin.size,res_size);
