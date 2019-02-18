@@ -8,12 +8,6 @@ static ERL_NIF_TERM nif_compress(ErlNifEnv* env, int argc,
 static ERL_NIF_TERM nif_uncompress(ErlNifEnv* env, int argc,
     const ERL_NIF_TERM argv[]);
 
-static ErlNifFunc nif_funcs[] =
-{
-    {"compress", 2, nif_compress},
-    {"uncompress", 2, nif_uncompress}
-};
-
 static ERL_NIF_TERM atom_ok;
 static ERL_NIF_TERM atom_error;
 static ERL_NIF_TERM atom_high;
@@ -43,17 +37,18 @@ nif_compress(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
   res_size = LZ4_compressBound(src_bin.size);
   enif_alloc_binary(res_size, &res_bin);
 
-  if (high)
-    real_size = LZ4_compressHC((char *)src_bin.data,
-        (char *)res_bin.data, src_bin.size);
-  else
-    real_size = LZ4_compress((char *)src_bin.data,
-        (char *)res_bin.data, src_bin.size);
+  if (high){
+     real_size = LZ4_compress_HC((char *)src_bin.data,
+        (char *)res_bin.data, src_bin.size,res_size,LZ4HC_CLEVEL_MAX);
+  }else{
+    real_size = LZ4_compress_default((char *)src_bin.data,
+        (char *)res_bin.data, src_bin.size,res_size);
+  }
+
 
   if (real_size >= 0) {
     enif_realloc_binary(&res_bin, real_size);
-    ret_term = enif_make_tuple2(env, atom_ok,
-        enif_make_binary(env, &res_bin));
+    ret_term = enif_make_tuple2(env, atom_ok,enif_make_binary(env, &res_bin));
     enif_release_binary(&res_bin);
     return ret_term;
   } else {
@@ -102,6 +97,11 @@ static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
   atom_uncompress_failed = enif_make_atom(env, "uncompress_failed");
   return 0;
 }
+static ErlNifFunc nif_funcs[] =
+{
+    {"compress", 2, nif_compress,ERL_NIF_DIRTY_JOB_CPU_BOUND},
+    {"uncompress", 2, nif_uncompress,ERL_NIF_DIRTY_JOB_CPU_BOUND}
+};
 
-ERL_NIF_INIT(lz4, nif_funcs, &on_load, NULL, NULL, NULL);
+ERL_NIF_INIT(ailz4, nif_funcs, &on_load, NULL, NULL, NULL);
 
